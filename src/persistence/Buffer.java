@@ -1,57 +1,105 @@
 package persistence;
 
+
+import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import business.Cliente;
+
 
 public class Buffer {
 	
 	List<Cliente> buffer = new ArrayList<Cliente>();
 	
 	//Registrar entrada	
-	boolean signIn() {
-		/*-Validar se cpf ja está na casa
-		  -Inserir na lista
-		  -Criar txt(verificar se já existe txt da data)		 
-		  -Registrar entrada no .txt*/
+	public boolean signIn(String nome, String cpf, String genero, String codSocio) {
+
+		Cliente tmp = searchByCpf(cpf);		
+		if(tmp == null) { //if cpf não está na casa
+			
+			Cliente c = new Cliente(nome, cpf, genero, codSocio);			
+			buffer.add(c); // add na lista
+			
+			File file = new File(getNameFile());
+			
+			try {			
+				FileWriter writer = new FileWriter(file,true);	
+				writer.write(c.serealizeIn()+"\n");
+				writer.close();
+			}
+			catch (Exception e){}
+			
+			return true;
+		}
 		
-		//Modelo serealização de entrada(1;Nome;Cpf;Genero;codSocio)
-		return true;
-	}
-	
-	//Registrar saída
-	boolean signOut() {
-		/*-Retirar da lista
-		  -Registrar saída no .txt*/
-		
-		//Modelo serealização de saída(0;Cpf)
 		return false;
 	}
 	
+	//Registrar saída
+	public boolean signOut(String cpf) {
+		try {
+			Cliente c = searchByCpf(cpf);
+			buffer.remove(c);
+					
+			File file = new File(getNameFile()); 
+
+			FileWriter writer = new FileWriter(file,true);	
+			writer.write(c.serealizeOut()+"\n");
+			writer.close();
+		}
+		catch (Exception e){ return false;}
+
+		return true;
+	}
+	
 	//Listar todos
-	List<Cliente> listAll() {		
-		//retornar uma copia da lista;
-		List<Cliente> l = null;
-		return l;
+	public List<Cliente> listAll() {		
+		List<Cliente> tmp = new ArrayList(buffer);
+		return tmp;
 	}
 	
 	//Consultar por cpf
-	Cliente listByCpf() {
-		//buscar na lista e retornar o match
-		Cliente c = null;
-		return c;
+	public Cliente searchByCpf(String cpf) {
+		Cliente out = null;
+		
+		for(Cliente tmp : buffer)
+			if(tmp.getCpf().equals(cpf))
+				{out = tmp;break;}			
+		
+		return out;
 	}
 	
 	//Listar totais
-	void dataAnalysis() {
-		/*Calcular e retornar os dados em alguma estrutura 
-		  sugiro uma hash(key,value)
-		ex.
-		qtd=100
-		pctMasc=40
-		pctFem=60
-		socios=80
-		nSocios=20*/		
+	public HashMap<String, Integer> dataAnalysis() {
+		
+		int masc =0,fem=0,socios=0, nSocios=0, qtd=buffer.size();		
+		
+		for(int i = 0;i<qtd;i++)
+	    {
+			Cliente c = buffer.get(i);			
+			int z = c.getGenero().equals("M") ? masc++ : fem++;				
+			z=c.getCodSocio().equals("0") ? nSocios++ : socios++;				
+	    }			
+		
+		 HashMap<String, Integer> hMap = new HashMap<String, Integer>();		 
+		 hMap.put("qtd", qtd);
+		 hMap.put("pctMasc", Math.round((float)masc/qtd*100));
+		 hMap.put("pctFem", Math.round((float)fem/qtd*100));
+		 hMap.put("socios", socios);
+		 hMap.put("nSocios", qtd-socios);
+		 
+		 return hMap;	
 	}
-
+	
+	private String getNameFile() {
+		StringBuilder sb = new StringBuilder();
+		Calendar cal = Calendar.getInstance();  
+		sb.append(Integer.toString(cal.get(Calendar.DATE)));
+		sb.append(Integer.toString(cal.get(Calendar.MONTH)));
+		sb.append(Integer.toString(cal.get(Calendar.YEAR)));		
+		return sb.toString();
+	}
 }
